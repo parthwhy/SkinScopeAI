@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SkinScope AI - Advanced Skin Analysis</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --primary: #0071ce;
+      --secondary: #f8f9fa;
+      --accent: #ff6b6b;
+      --dark: #212529;
+      --light: #ffffff;
+      --success: #4caf50;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #333;
+      background-color: #f9f9f9;
+      overflow-x: hidden;
+    }
+    
+    .navbar-brand img {
+      height: 60px;
+    }
+    
+    .navbar-nav .nav-link {
+      font-weight: 500;
+      transition: all 0.3s ease;
+      padding: 0.5rem 1rem;
+    }
+    
+    .navbar-nav .nav-link:hover {
+      color: var(--primary);
+    }
+    
+    .btn-primary {
+      background-color: var(--primary);
+      border-color: var(--primary);
+      padding: 10px 25px;
+      border-radius: 50px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      background-color: #005ca9;
+      border-color: #005ca9;
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0, 113, 206, 0.2);
+    }
+    
+    .btn-outline-primary {
+      color: var(--primary);
+      border-color: var(--primary);
+      border-radius: 50px;
+      padding: 10px 25px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-outline-primary:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    .section-title {
+      position: relative;
+      margin-bottom: 50px;
+      text-align: center;
+    }
+    
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 4px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+    
+    .card {
+      border: none;
+      border-radius: 15px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+    
+    .card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-img-top {
+      height: 250px;
+      object-fit: cover;
+    }
+    
+    .analysis-result {
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+    
+    .skin-condition {
+      padding: 10px 20px;
+      border-radius: 50px;
+      display: inline-block;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+    
+    .product-card {
+      border-radius: 15px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      height: 100%;
+    }
+    
+    .product-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .product-img {
+      height: 200px;
+      object-fit: cover;
+    }
+    
+    .camera-container {
+      position: relative;
+      width: 100%;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    #video, #canvas {
+      width: 100%;
+      height: 380px;
+      object-fit: cover;
+      background: #000;
+    }
+    
+    .face-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 180px;
+      height: 240px;
+      border: 2px dashed var(--primary);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    
+    .analysis-section {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 15px;
+      padding: 30px;
+      margin-top: 40px;
+    }
+    
+    .feature-icon {
+      width: 70px;
+      height: 70px;
+      background: rgba(0, 113, 206, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    
+    .feature-icon i {
+      font-size: 30px;
+      color: var(--primary);
+    }
+    
+    .service-card {
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      height: 100%;
+      transition: all 0.3s ease;
+    }
+    
+    .service-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+    }
+    
+    .testimonial-card {
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      position: relative;
+    }
+    
+    .testimonial-card::before {
+      content: '"';
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 80px;
+      color: rgba(0, 113, 206, 0.1);
+      font-family: Georgia, serif;
+      line-height: 1;
+    }
+    
+    .client-img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    
+    footer {
+      background: var(--dark);
+      color: white;
+      padding: 60px 0 30px;
+    }
+    
+    .footer-logo {
+      height: 50px;
+      margin-bottom: 20px;
+    }
+    
+    .social-link {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 10px;
+      transition: all 0.3s ease;
+    }
+    
+    .social-link:hover {
+      background: var(--primary);
+      transform: translateY(-5px);
+    }
+    
+    .footer-title {
+      position: relative;
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .footer-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 50px;
+      height: 3px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+    
+    .footer-link {
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      margin-bottom: 10px;
+      display: block;
+      transition: all 0.3s ease;
+    }
+    
+    .footer-link:hover {
+      color: white;
+      padding-left: 5px;
+    }
+    
+    .copyright {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 20px;
+      margin-top: 40px;
+    }
+    
+    .progress-container {
+      margin: 20px 0;
+    }
+    
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    
+    .progress {
+      height: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+    
+    .analysis-badge {
+      padding: 5px 15px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 600;
+      display: inline-block;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .recommended-badge {
+      background-color: rgba(76, 175, 80, 0.15);
+      color: #388e3c;
+    }
+    
+    .caution-badge {
+      background-color: rgba(255, 152, 0, 0.15);
+      color: #f57c00;
+    }
+    
+    .alert-badge {
+      background-color: rgba(244, 67, 54, 0.15);
+      color: #d32f2f;
+    }
+    
+    @media (max-width: 768px) {
+      .navbar-nav {
+        margin-top: 15px;
+      }
+      
+      .hero-content {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      
+      .feature-box {
+        margin-bottom: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white py-3 shadow-sm">
+    <div class="container">
+      <a class="navbar-brand" href="#">
+        <img src="https://via.placeholder.com/200x60/0071ce/ffffff?text=SkinScope+AI" alt="SkinScope AI Logo">
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link active" href="#">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">How It Works</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Features</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Skin Library</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Products</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Testimonials</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Contact</a>
+          </li>
+        </ul>
+        <div class="d-flex ms-3">
+          <button class="btn btn-outline-primary me-2">Login</button>
+          <button class="btn btn-primary">Sign Up</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="py-5">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-6 mb-5 mb-lg-0">
+          <h1 class="display-4 fw-bold mb-4">Advanced AI Skin Analysis</h1>
+          <p class="lead mb-4">Get personalized skin insights and product recommendations with our cutting-edge AI technology. Understand your skin like never before.</p>
+          <div class="d-flex flex-wrap">
+            <button class="btn btn-primary btn-lg me-3 mb-3">Start Skin Scan</button>
+            <button class="btn btn-outline-primary btn-lg mb-3">How It Works</button>
+          </div>
+          <div class="d-flex mt-4">
+            <div class="me-4 text-center">
+              <h3 class="fw-bold">25K+</h3>
+              <p>Analyses</p>
+            </div>
+            <div class="me-4 text-center">
+              <h3 class="fw-bold">98%</h3>
+              <p>Accuracy</p>
+            </div>
+            <div class="text-center">
+              <h3 class="fw-bold">4.9/5</h3>
+              <p>User Rating</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="camera-container">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas" class="d-none"></canvas>
+            <div class="face-overlay"></div>
+          </div>
+          <div class="d-flex justify-content-center mt-4">
+            <button id="capture-btn" class="btn btn-outline-primary me-3">Capture Image</button>
+            <button id="retake-btn" class="btn btn-outline-secondary me-3 d-none">Retake</button>
+            <button id="analyze-btn" class="btn btn-primary d-none">Analyze Skin</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Analysis Results (Initially hidden) -->
+  <section id="analysis-results" class="py-5 d-none">
+    <div class="container">
+      <div class="text-center mb-5">
+        <h2 class="section-title">Your Skin Analysis</h2>
+        <p class="lead">Based on our advanced AI assessment of your skin</p>
+      </div>
+      
+      <div class="row">
+        <!-- Analysis Summary -->
+        <div class="col-lg-4 mb-4">
+          <div class="analysis-result h-100">
+            <div class="text-center mb-4">
+              <img id="result-image" src="" alt="Analysis result" class="img-fluid rounded mb-3" style="max-height: 200px;">
+              <h4 class="fw-bold mb-3">Skin Summary</h4>
+              <div class="skin-condition bg-success text-white">Normal Skin Type</div>
+              <p class="mb-0">Overall skin health is good with minor concerns</p>
+            </div>
+            
+            <div class="mt-4">
+              <h5 class="fw-bold mb-3">Key Indicators</h5>
+              <div class="progress-container">
+                <div class="progress-label">
+                  <span>Hydration</span>
+                  <span>78%</span>
+                </div>
+                <div class="progress">
+                  <div class="progress-bar bg-success" role="progressbar" style="width: 78%"></div>
+                </div>
+              </div>
+              
+              <div class="progress-container">
+                <div class="progress-label">
+                  <span>Oiliness</span>
+                  <span>42%</span>
+                </div>
+                <div class="progress">
+                  <div class="progress-bar bg-warning" role="progressbar" style="width: 42%"></div>
+                </div>
+              </div>
+              
+              <div class="progress-container">
+                <div class="progress-label">
+                  <span>Pores</span>
+                  <span>65%</span>
+                </div>
+                <div class="progress">
+                  <div class="progress-bar bg-info" role="progressbar" style="width: 65%"></div>
+                </div>
+              </div>
+              
+              <div class="progress-container">
+                <div class="progress-label">
+                  <span>Sensitivity</span>
+                  <span>30%</span>
+                </div>
+                <div class="progress">
+                  <div class="progress-bar bg-primary" role="progressbar" style="width: 30%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Concerns & Recommendations -->
+        <div class="col-lg-8">
+          <div class="analysis-result mb-4">
+            <h4 class="fw-bold mb-4">Detected Skin Concerns</h4>
+            <div class="mb-4">
+              <h5><i class="bi bi-exclamation-circle me-2 text-warning"></i> Minor Sun Damage</h5>
+              <p>UV exposure has caused some minor pigmentation and texture changes. Always use SPF protection.</p>
+              <div class="analysis-badge caution-badge">Moderate Concern</div>
+            </div>
+            
+            <div class="mb-4">
+              <h5><i class="bi bi-check-circle me-2 text-success"></i> Hydration Levels</h5>
+              <p>Your skin is well-hydrated. Maintain with daily moisturizer.</p>
+              <div class="analysis-badge recommended-badge">Good Condition</div>
+            </div>
+            
+            <div>
+              <h5><i class="bi bi-exclamation-triangle me-2 text-danger"></i> Early Signs of Aging</h5>
+              <p>Fine lines beginning to appear around eyes and forehead. Consider preventative treatments.</p>
+              <div class="analysis-badge alert-badge">Attention Needed</div>
+            </div>
+          </div>
+          
+          <div class="analysis-result">
+            <h4 class="fw-bold mb-4">Recommended Products</h4>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <div class="card product-card h-100">
+                  <img src="https://via.placeholder.com/300x200/f0f0f0/cccccc?text=Vitamin+C+Serum" class="card-img-top" alt="Vitamin C Serum">
+                  <div class="card-body">
+                    <h5 class="card-title">Vitamin C Brightening Serum</h5>
+                    <p class="card-text">Fights free radicals and brightens skin tone.</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span class="fw-bold text-primary">$42.99</span>
+                      <a href="#" class="btn btn-sm btn-outline-primary">View Product</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <div class="card product-card h-100">
+                  <img src="https://via.placeholder.com/300x200/f0f0f0/cccccc?text=SPF+50+Sunscreen" class="card-img-top" alt="Sunscreen">
+                  <div class="card-body">
+                    <h5 class="card-title">Mineral SPF 50 Sunscreen</h5>
+                    <p class="card-text">Non-greasy, broad spectrum UVA/UVB protection.</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span class="fw-bold text-primary">$28.50</span>
+                      <a href="#" class="btn btn-sm btn-outline-primary">View Product</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="py-5 bg-light">
+    <div class="container">
+      <div class="text-center mb-5">
+        <h2 class="section-title">How SkinScope AI Works</h2>
+        <p class="lead">Simple steps to understand your skin better</p>
+      </div>
+      
+      <div class="row">
+        <div class="col-md-4 mb-4">
+          <div class="text-center p-4 h-100">
+            <div class="feature-icon mx-auto">
+              <i class="bi bi-camera"></i>
+            </div>
+            <h4 class="fw-bold mb-3">1. Capture</h4>
+            <p>Use your device's camera to take a clear image of your face in good lighting conditions.</p>
+          </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+          <div class="text-center p-4 h-100">
+            <div class="feature-icon mx-auto">
+              <i class="bi bi-cpu"></i>
+            </div>
+            <h4 class="fw-bold mb-3">2. Analyze</h4>
+            <p>Our AI algorithms examine your skin texture, pores, wrinkles, spots, and more.</p>
+          </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+          <div class="text-center p-4 h-100">
+            <div class="feature-icon mx-auto">
+              <i class="bi bi-card-checklist"></i>
+            </div>
+            <h4 class="fw-bold mb-3">3. Get Results</h4>
+            <p>Receive personalized insights and product recommendations for your skin.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="py-5">
+    <div class="container">
+      <div class="text-center mb-5">
+        <h2 class="section-title">Advanced Skin Analysis Features</h2>
+        <p class="lead">Comprehensive insights for better skin health</p>
+      </div>
+      
+      <div class="row">
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="service-card">
+            <div class="feature-icon">
+              <i class="bi bi-droplet"></i>
+            </div>
+            <h4 class="fw-bold mb-3">Hydration Analysis</h4>
+            <p>Measure your skin's moisture levels and get recommendations for optimal hydration.</p>
+          </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="service-card">
+            <div class="feature-icon">
+              <i class="bi bi-sun"></i>
+            </div>
+            <h4 class="fw-bold mb-3">Sun Damage Assessment</h4>
+            <p>Identify UV damage, pigmentation issues, and receive prevention strategies.</p>
+          </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="service-card">
+            <div class="feature-icon">
+              <i class="bi bi-clock"></i>
+            </div>
+            <h4 class="fw-bold mb-3">Aging Analysis</h4>
+            <p>Track fine lines, wrinkles, and elasticity to combat signs of aging.</p>
+          </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="service-card">
+            <div class="feature-icon">
+              <i class="bi bi-bandaid"></i>
+            </div>
+            <h4 class="fw-bold mb-3">Acne & Blemish Tracking</h4>
+            <p>Monitor breakouts and get personalized treatment recommendations.</p>
+          </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="service-card">
+            <div class="feature-icon">
+              <i class="bi bi-palette"></i>
+            </div>
+            <h4 class="fw-bold mb-3">Tone & Texture Evaluation</h4>
+            <p>Analyze skin tone evenness and texture for a more radiant complexion.</p>
+          </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="service-card">
+            <div class="feature-icon">
+              <i class="bi bi-graph-up"></i>
+            </div>
+            <h4 class="fw-bold mb-3">Progress Tracking</h4>
+            <p>Monitor improvements over time with our visual comparison tools.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="py-5 bg-light">
+    <div class="container">
+      <div class="text-center mb-5">
+        <h2 class="section-title">What Our Users Say</h2>
+        <p class="lead">Real results from real people</p>
+      </div>
+      
+      <div class="row">
+        <div class="col-md-4 mb-4">
+          <div class="testimonial-card h-100">
+            <p class="mb-4">"SkinScope AI completely changed my skincare routine. The analysis was spot-on and the product recommendations actually worked!"</p>
+            <div class="d-flex align-items-center">
+              <img src="https://randomuser.me/api/portraits/women/45.jpg" alt="User" class="client-img me-3">
+              <div>
+                <h6 class="fw-bold mb-0">Sarah Johnson</h6>
+                <small class="text-muted">Marketing Executive</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+          <div class="testimonial-card h-100">
+            <p class="mb-4">"I've struggled with acne for years. SkinScope helped me understand my skin better than any dermatologist visit."</p>
+            <div class="d-flex align-items-center">
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="User" class="client-img me-3">
+              <div>
+                <h6 class="fw-bold mb-0">Michael Chen</h6>
+                <small class="text-muted">Software Developer</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+          <div class="testimonial-card h-100">
+            <p class="mb-4">"The accuracy of the aging analysis helped me start preventative care just in time. My skin has never looked better!"</p>
+            <div class="d-flex align-items-center">
+              <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="User" class="client-img me-3">
+              <div>
+                <h6 class="fw-bold mb-0">Emily Rodriguez</h6>
+                <small class="text-muted">Teacher</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-5 bg-primary text-white">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-md-8 mb-4 mb-md-0">
+          <h2 class="fw-bold mb-3">Ready for Your Skin Transformation?</h2>
+          <p class="mb-0">Join thousands of users who have discovered their best skin with SkinScope AI.</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+          <button class="btn btn-light btn-lg">Start Free Analysis</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-4 mb-5 mb-lg-0">
+          <img src="https://via.placeholder.com/200x60/ffffff/0071ce?text=SkinScope+AI" alt="Logo" class="footer-logo">
+          <p class="mb-4">Advanced AI skin analysis for personalized skincare insights and recommendations.</p>
+          <div class="d-flex">
+            <a href="#" class="social-link"><i class="bi bi-facebook"></i></a>
+            <a href="#" class="social-link"><i class="bi bi-instagram"></i></a>
+            <a href="#" class="social-link"><i class="bi bi-twitter"></i></a>
+            <a href="#" class="social-link"><i class="bi bi-linkedin"></i></a>
+          </div>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 mb-4 mb-md-0">
+          <h5 class="footer-title">Quick Links</h5>
+          <a href="#" class="footer-link">Home</a>
+          <a href="#" class="footer-link">How It Works</a>
+          <a href="#" class="footer-link">Features</a>
+          <a href="#" class="footer-link">Pricing</a>
+          <a href="#" class="footer-link">Blog</a>
+        </div>
+        
+        <div class="col-lg-2 col-md-4 mb-4 mb-md-0">
+          <h5 class="footer-title">Resources</h5>
+          <a href="#" class="footer-link">Skin Guide</a>
+          <a href="#" class="footer-link">Ingredients Library</a>
+          <a href="#" class="footer-link">Product Reviews</a>
+          <a href="#" class="footer-link">Research Papers</a>
+          <a href="#" class="footer-link">FAQ</a>
+        </div>
+        
+        <div class="col-lg-4 col-md-4">
+          <h5 class="footer-title">Contact Us</h5>
+          <p class="d-flex align-items-start mb-3">
+            <i class="bi bi-geo-alt me-2 mt-1"></i>
+            <span>123 Skincare Ave, Beauty District, CA 90210</span>
+          </p>
+          <p class="d-flex align-items-center mb-3">
+            <i class="bi bi-envelope me-2"></i>
+            <span>support@skinscope.ai</span>
+          </p>
+          <p class="d-flex align-items-center">
+            <i class="bi bi-telephone me-2"></i>
+            <span>(555) 123-4567</span>
+          </p>
+        </div>
+      </div>
+      
+      <div class="copyright text-center">
+        <p class="mb-0">&copy; 2023 SkinScope AI. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      const captureBtn = document.getElementById('capture-btn');
+      const retakeBtn = document.getElementById('retake-btn');
+      const analyzeBtn = document.getElementById('analyze-btn');
+      const analysisResults = document.getElementById('analysis-results');
+      const resultImage = document.getElementById('result-image');
+      const context = canvas.getContext('2d');
+      
+      let isCaptured = false;
+      
+      // Start camera
+      function startCamera() {
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(stream => {
+            video.srcObject = stream;
+          })
+          .catch(err => {
+            console.error("Error accessing camera: ", err);
+            alert("Could not access the camera. Please ensure you've granted permission and try again.");
+          });
+      }
+      
+      // Capture image
+      captureBtn.addEventListener('click', function() {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.classList.remove('d-none');
+        video.classList.add('d-none');
+        captureBtn.classList.add('d-none');
+        retakeBtn.classList.remove('d-none');
+        analyzeBtn.classList.remove('d-none');
+        isCaptured = true;
+      });
+      
+      // Retake image
+      retakeBtn.addEventListener('click', function() {
+        canvas.classList.add('d-none');
+        video.classList.remove('d-none');
+        captureBtn.classList.remove('d-none');
+        retakeBtn.classList.add('d-none');
+        analyzeBtn.classList.add('d-none');
+        isCaptured = false;
+      });
+      
+      // Analyze skin
+      analyzeBtn.addEventListener('click', function() {
+        // Show loading state
+        analyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Analyzing...';
+        analyzeBtn.disabled = true;
+        
+        // Convert canvas to data URL
+        const dataURL = canvas.toDataURL('image/jpeg');
+        resultImage.src = dataURL;
+        
+        // Simulate analysis delay
+        setTimeout(() => {
+          // Show results
+          analysisResults.classList.remove('d-none');
+          
+          // Scroll to results
+          analysisResults.scrollIntoView({ behavior: 'smooth' });
+          
+          // Reset button
+          analyzeBtn.innerHTML = 'Analyze Skin';
+          analyzeBtn.disabled = false;
+        }, 2000);
+      });
+      
+      // Initialize camera
+      startCamera();
+      
+      // Set canvas dimensions to match video
+      video.addEventListener('play', function() {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SkinScope AI - Results</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .score-label { font-weight: 600; margin-bottom: 4px; }
+    .score-bar { height: 10px; border-radius: 10px; margin-bottom: 15px; }
+    .product-card img { max-width: 100px; }
+    .score-box { border-radius: 12px; background: #f8f9fa; padding: 1rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body class="container py-4">
+
+  <h2 class="mb-3 text-center">Your Skin Analysis Results</h2>
+
+  <!-- Top Circle Scores -->
+  <div class="d-flex justify-content-around text-center mb-4">
+    <div><h3 id="hydration-score">--</h3><p>Hydration</p></div>
+    <div><h3 id="oiliness-score">--</h3><p>Oiliness</p></div>
+    <div><h3 id="redness-score">--</h3><p>Redness</p></div>
+    <div><h3 id="texture-score">--</h3><p>Texture</p></div>
+  </div>
+
+  <!-- Radar Chart -->
+  <canvas id="skinRadarChart" height="300"></canvas>
+
+  <!-- Scores -->
+  <div class="mt-4">
+    <h4>Scores</h4>
+    <div id="score-list"></div>
+  </div>
+
+  <!-- Product Recommendations -->
+  <div class="mt-5">
+    <h4>Your Personalized Product Recommendations</h4>
+    <div id="product-suggestions" class="row gy-3 mt-3"></div>
+  </div>
+
+  <script>
+    const skinData = JSON.parse(localStorage.getItem("skin_results"));
+
+    if (!skinData) {
+      alert("No skin data found. Please scan first.");
+      window.location.href = "index.html";
+    }
+
+    // Example static mapping (or enhance this from backend later)
+    const scores = {
+      hydration: Math.round((1 - skinData.u_dryness) * 100),
+      oiliness: Math.round(skinData.t_oiliness * 100),
+      redness: skinData.concerns.includes("Redness") ? 96 : 45,
+      texture: skinData.concerns.includes("Uneven Texture") ? 77 : 55
+    };
+
+    // Update Top Scores
+    document.getElementById("hydration-score").textContent = scores.hydration;
+    document.getElementById("oiliness-score").textContent = scores.oiliness;
+    document.getElementById("redness-score").textContent = scores.redness;
+    document.getElementById("texture-score").textContent = scores.texture;
+
+    // Chart.js Radar Chart
+    new Chart(document.getElementById("skinRadarChart"), {
+      type: "radar",
+      data: {
+        labels: ["Hydration", "Oiliness", "Redness", "Texture"],
+        datasets: [{
+          label: "Skin Scores",
+          data: Object.values(scores),
+          backgroundColor: "rgba(0,113,206,0.3)",
+          borderColor: "#0071ce",
+          pointBackgroundColor: "#0071ce"
+        }]
+      },
+      options: {
+        scales: {
+          r: {
+            suggestedMin: 0,
+            suggestedMax: 100
+          }
+        }
+      }
+    });
+
+    // Score List Bars
+    const scoreList = document.getElementById("score-list");
+    Object.entries(scores).forEach(([key, val]) => {
+      scoreList.innerHTML += `
+        <div class="score-box">
+          <div class="d-flex justify-content-between">
+            <span class="score-label text-capitalize">${key}</span>
+            <span>${val}/100</span>
+          </div>
+          <div class="score-bar bg-primary" style="width: ${val}%;"></div>
+        </div>
+      `;
+    });
+
+    // Show Product Suggestions (basic 3)
+    const dummyProducts = [
+      {
+        name: "CeraVe Hydrating Cleanser",
+        reason: "Great for dry skin",
+        img: "https://i.imgur.com/I3n9zXM.png",
+        url: "https://walmart.com/cerave"
+      },
+      {
+        name: "The Ordinary Niacinamide",
+        reason: "Targets pores and redness",
+        img: "https://i.imgur.com/lD8YgBO.png",
+        url: "https://walmart.com/ordinary"
+      },
+      {
+        name: "Cetaphil Lotion",
+        reason: "Hydrates sensitive areas",
+        img: "https://i.imgur.com/Nwo7shU.png",
+        url: "https://walmart.com/cetaphil"
+      }
+    ];
+
+    const productContainer = document.getElementById("product-suggestions");
+    dummyProducts.forEach(product => {
+      productContainer.innerHTML += `
+        <div class="col-md-4">
+          <div class="card product-card p-3 h-100">
+            <img src="${product.img}" class="mx-auto mb-2" alt="${product.name}">
+            <h5>${product.name}</h5>
+            <p class="small">${product.reason}</p>
+            <a href="${product.url}" class="btn btn-primary btn-sm mt-auto" target="_blank">Buy Now</a>
+          </div>
+        </div>
+      `;
+    });
+  </script>
+</body>
+</html>

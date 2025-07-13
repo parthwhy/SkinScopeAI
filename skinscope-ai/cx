@@ -1,0 +1,158 @@
+# app.py
+import cv2
+import mediapipe as mp
+
+mp_face_mesh = mp.solutions.face_mesh
+face_mesh = mp_face_mesh.FaceMesh(static_image_mode=True)
+
+def detect_face(image):
+    results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    return results.multi_face_landmarks[0] if results.multi_face_landmarks else None
+
+# Add at bottom
+img = cv2.imread("selfie.jpg")
+landmarks = detect_face(img)
+print(f"✅ Found {len(landmarks.landmark)} landmarks" if landmarks else "❌ No face detected")
+
+import numpy as np
+import cv2
+
+import cv2
+import numpy as np
+import mediapipe as mp
+from matplotlib import pyplot as plt
+
+# Initialize MediaPipe FaceMesh
+mp_face_mesh = mp.solutions.face_mesh
+face_mesh = mp_face_mesh.FaceMesh(static_image_mode=True)
+
+# Optimized landmark indices for T-zone and U-zone
+T_ZONE_INDICES = [
+    # Forehead (top-center to eyebrows)
+    10, 67, 109, 338, 297, 332, 284,
+    # Nose bridge and tip
+    8, 6, 168, 197, 2, 1,
+    # Chin (for complete T-shape)
+    152, 148, 176
+]
+
+U_ZONE_INDICES = [
+    # Right cheek
+    116, 117, 118, 119, 100, 47, 126,
+    # Left cheek
+    345, 346, 347, 348, 322, 371, 355
+]
+
+def detect_face(image):
+    """Detect face landmarks using MediaPipe"""
+    results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    return results.multi_face_landmarks[0] if results.multi_face_landmarks else None
+def apply_masked_overlay(base, color, mask, alpha=0.3):
+    """Blend a color overlay onto base image where mask is set"""
+    overlay = base.copy()
+    color_layer = np.full_like(base, color)
+    blended = cv2.addWeighted(base, 1 - alpha, color_layer, alpha, 0)
+    overlay[mask > 0] = blended[mask > 0]
+    return overlay
+
+def extract_facial_zones(image, landmarks):
+    """Extract refined T-zone and U-zone with morphological filtering"""
+    h, w = image.shape[:2]
+    
+    # Convert landmarks to pixel coordinates
+    def get_coords(indices):
+        return np.array([(int(landmarks.landmark[i].x * w), 
+                        int(landmarks.landmark[i].y * h)) for i in indices])
+    
+    # Get convex hull of points for each zone
+    t_coords = cv2.convexHull(get_coords(T_ZONE_INDICES))
+    u_coords = cv2.convexHull(get_coords(U_ZONE_INDICES))
+    
+    # Create masks with morphological smoothing
+    t_mask = np.zeros((h,w), dtype=np.uint8)
+    u_mask = np.zeros((h,w), dtype=np.uint8)
+    
+    cv2.fillPoly(t_mask, [t_coords], 255)
+    cv2.fillPoly(u_mask, [u_coords], 255)
+    
+    # Apply morphological closing to smooth masks
+    kernel = np.ones((5,5), np.uint8)
+    t_mask = cv2.morphologyEx(t_mask, cv2.MORPH_CLOSE, kernel)
+    u_mask = cv2.morphologyEx(u_mask, cv2.MORPH_CLOSE, kernel)
+    
+    # Extract regions with bounding box cropping
+    def crop_to_bbox(image, mask):
+        x,y,w,h = cv2.boundingRect(mask)
+        return image[y:y+h, x:x+w], (x,y,w,h)
+    
+    t_zone, t_rect = crop_to_bbox(image, t_mask)
+    u_zone, u_rect = crop_to_bbox(image, u_mask)
+    
+    return {
+        't_zone': t_zone,
+        'u_zone': u_zone,
+        't_mask': t_mask,
+        'u_mask': u_mask,
+        't_rect': t_rect,
+        'u_rect': u_rect
+    }
+
+def visualize_results(image, results):
+    """Create labeled visualization of zones"""
+    viz = image.copy()
+    
+    t_mask = results['t_mask']
+    u_mask = results['u_mask']
+
+    # Create colored overlays
+    green_overlay = np.zeros_like(viz)
+    green_overlay[:] = (0, 255, 0)
+
+    blue_overlay = np.zeros_like(viz)
+    blue_overlay[:] = (255, 0, 0)
+
+    # Blend masks using masks as alpha selectors
+    viz = apply_masked_overlay(viz, (0, 255, 0), t_mask)  # Green T-zone
+    viz = apply_masked_overlay(viz, (255, 0, 0), u_mask)  # Blue U-zone
+    
+
+    # Add zone labels
+    cv2.putText(viz, "T-Zone (Forehead/Nose/Chin)", (10,30), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
+    cv2.putText(viz, "U-Zone (Cheeks)", (10,60), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,0,0), 2)
+    
+    # Plot output
+    plt.figure(figsize=(18,6))
+    plt.subplot(131)
+    plt.imshow(cv2.cvtColor(viz, cv2.COLOR_BGR2RGB))
+    plt.title("Zone Visualization")
+    
+    plt.subplot(132)
+    plt.imshow(cv2.cvtColor(results['t_zone'], cv2.COLOR_BGR2RGB))
+    plt.title("T-Zone Extraction")
+    
+    plt.subplot(133)
+    plt.imshow(cv2.cvtColor(results['u_zone'], cv2.COLOR_BGR2RGB))
+    plt.title("U-Zone Extraction")
+    
+    plt.tight_layout()
+    plt.show()
+
+
+# Example usage
+image = cv2.imread("selfie.jpg")
+landmarks = detect_face(image)
+
+if landmarks:
+    results = extract_facial_zones(image, landmarks)
+    visualize_results(image, results)
+    
+    # Save extracted zones
+    cv2.imwrite("t_zone.jpg", results['t_zone'])
+    cv2.imwrite("u_zone.jpg", results['u_zone'])
+else:
+    print("No face detected in the image")
+
+
+    

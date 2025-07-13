@@ -1,0 +1,8 @@
+Flask==2.3.3
+flask-cors==4.0.0
+opencv-python==4.9.0.80
+Pillow==10.3.0
+numpy==1.26.4
+mediapipe==0.10.9
+python-dotenv==1.0.1
+huggingface-hub==0.23.0

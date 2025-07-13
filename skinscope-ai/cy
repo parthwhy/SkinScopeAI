@@ -1,0 +1,271 @@
+import cv2
+import numpy as np
+import mediapipe as mp
+from matplotlib import pyplot as plt
+
+# Initialize MediaPipe FaceMesh
+mp_face_mesh = mp.solutions.face_mesh
+face_mesh = mp_face_mesh.FaceMesh(static_image_mode=True)
+
+# Optimized landmark indices for T-zone and U-zone
+T_ZONE_INDICES = [
+    # Forehead (top-center to eyebrows)
+    10, 67, 109, 338, 297, 332, 284,
+    # Nose bridge and tip
+    8, 6, 168, 197, 2, 1,
+    # Chin (for complete T-shape)
+    152, 148, 176
+]
+
+U_ZONE_INDICES = [
+    # Right cheek
+    116, 117, 118, 119, 100, 47, 126,
+    # Left cheek
+    345, 346, 347, 348, 322, 371, 355
+]
+
+def detect_face(image):
+    """Detect face landmarks using MediaPipe"""
+    results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    return results.multi_face_landmarks[0] if results.multi_face_landmarks else None
+
+def apply_masked_overlay(base, color, mask, alpha=0.3):
+    """Blend a color overlay onto base image where mask is set"""
+    overlay = base.copy()
+    color_layer = np.full_like(base, color)
+    blended = cv2.addWeighted(base, 1 - alpha, color_layer, alpha, 0)
+    overlay[mask > 0] = blended[mask > 0]
+    return overlay
+
+def extract_facial_zones(image, landmarks):
+    """Extract refined T-zone and U-zone with morphological filtering"""
+    h, w = image.shape[:2]
+    
+    # Convert landmarks to pixel coordinates
+    def get_coords(indices):
+        return np.array([(int(landmarks.landmark[i].x * w), 
+                        int(landmarks.landmark[i].y * h)) for i in indices])
+    
+    # Get convex hull of points for each zone
+    t_coords = cv2.convexHull(get_coords(T_ZONE_INDICES))
+    u_coords = cv2.convexHull(get_coords(U_ZONE_INDICES))
+    
+    # Create masks with morphological smoothing
+    t_mask = np.zeros((h,w), dtype=np.uint8)
+    u_mask = np.zeros((h,w), dtype=np.uint8)
+    
+    cv2.fillPoly(t_mask, [t_coords], 255)
+    cv2.fillPoly(u_mask, [u_coords], 255)
+    
+    # Apply morphological closing to smooth masks
+    kernel = np.ones((5,5), np.uint8)
+    t_mask = cv2.morphologyEx(t_mask, cv2.MORPH_CLOSE, kernel)
+    u_mask = cv2.morphologyEx(u_mask, cv2.MORPH_CLOSE, kernel)
+    
+    # Extract regions with bounding box cropping
+    def crop_to_bbox(image, mask):
+        x,y,w,h = cv2.boundingRect(mask)
+        return image[y:y+h, x:x+w], (x,y,w,h)
+    
+    t_zone, t_rect = crop_to_bbox(image, t_mask)
+    u_zone, u_rect = crop_to_bbox(image, u_mask)
+    
+    return {
+        't_zone': t_zone,
+        'u_zone': u_zone,
+        't_mask': t_mask,
+        'u_mask': u_mask,
+        't_rect': t_rect,
+        'u_rect': u_rect
+    }
+
+def analyze_skin(t_zone, u_zone):
+    """Analyze skin characteristics based on T-zone and U-zone"""
+    # Convert zones to HSV color space
+    t_hsv = cv2.cvtColor(t_zone, cv2.COLOR_BGR2HSV)
+    u_hsv = cv2.cvtColor(u_zone, cv2.COLOR_BGR2HSV)
+    
+    # Get Value channels (brightness)
+    t_v = t_hsv[:,:,2][t_hsv[:,:,2] > 20]  # Ignore dark pixels
+    u_v = u_hsv[:,:,2][u_hsv[:,:,2] > 20]
+    
+    # 1. Skin Type Detection (based on oiliness)
+    def detect_skin_type(t_v, u_v):
+        """Determine skin type based on brightness variance"""
+        if len(t_v) == 0 or len(u_v) == 0:
+            return "Normal"  # Default if no data
+        
+        t_std = np.std(t_v)
+        u_std = np.std(u_v)
+        
+        if t_std > 25 and u_std < 20:
+            return "Oily"
+        elif t_std > 20 and u_std > 22:
+            return "Combination"
+        elif t_std < 18 and u_std < 18:
+            return "Dry"
+        else:
+            return "Normal"
+    
+    # 2. Oiliness/Dryness Analysis
+    def analyze_moisture(t_v, u_v):
+        """Quantify oiliness in T-zone and dryness in U-zone"""
+        t_oiliness = np.mean(t_v) / 255 if len(t_v) > 0 else 0.5
+        u_dryness = 1 - (np.mean(u_v) / 255) if len(u_v) > 0 else 0.5
+        
+        return {
+            "t_oiliness": min(1.0, max(0, t_oiliness * 1.2)),  # Scale slightly
+            "u_dryness": min(1.0, max(0, u_dryness * 1.1))
+        }
+    
+    # 3. Skin Concerns Detection
+    def detect_concerns(t_zone, u_zone):
+        """Identify common skin concerns"""
+        concerns = []
+        
+        # Redness detection (using LAB color space)
+        t_lab = cv2.cvtColor(t_zone, cv2.COLOR_BGR2LAB)
+        if t_lab.size > 0:
+            a_channel = t_lab[:,:,1]
+            if np.mean(a_channel) > 140:  # Higher A channel = more redness
+                concerns.append("Redness")
+        
+        # Texture analysis (variance in gray channel)
+        gray_u = cv2.cvtColor(u_zone, cv2.COLOR_BGR2GRAY)
+        if gray_u.size > 0 and np.var(gray_u) > 300:
+            concerns.append("Uneven Texture")
+        
+        # Pore visibility (using edge detection)
+        if gray_u.size > 0:
+            edges = cv2.Canny(gray_u, 50, 150)
+            if np.mean(edges) > 25:
+                concerns.append("Visible Pores")
+        
+        return concerns or ["No Major Concerns"]
+    
+    # Perform analyses
+    return {
+        "skin_type": detect_skin_type(t_v, u_v),
+        "moisture": analyze_moisture(t_v, u_v),
+        "concerns": detect_concerns(t_zone, u_zone)
+    }
+
+def visualize_analysis(image, skin_analysis):
+    """Create visualization of analysis results"""
+    viz = image.copy()
+    h, w = image.shape[:2]
+    
+    # Draw analysis results
+    cv2.putText(viz, f"Skin Type: {skin_analysis['skin_type']}", 
+                (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    cv2.putText(viz, f"T-Zone Oiliness: {skin_analysis['moisture']['t_oiliness']*100:.1f}%", 
+                (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+    cv2.putText(viz, f"U-Zone Dryness: {skin_analysis['moisture']['u_dryness']*100:.1f}%", 
+                (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+    
+    concerns_text = f"Concerns: {', '.join(skin_analysis['concerns'])}"
+    cv2.putText(viz, concerns_text, (10, 120), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+    
+    # Create moisture meter visualization (match image width)
+    moisture_height = 100
+    moisture_img = np.zeros((moisture_height, w, 3), dtype=np.uint8)  # Use image width
+    
+    # Draw T-zone oiliness
+    t_width = int(skin_analysis['moisture']['t_oiliness'] * w)
+    cv2.rectangle(moisture_img, (0, 0), (t_width, moisture_height//2), (0, 255, 255), -1)
+    cv2.putText(moisture_img, "T-Zone Oiliness", (10, moisture_height//4 + 10), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+    
+    # Draw U-zone dryness
+    u_width = int(skin_analysis['moisture']['u_dryness'] * w)
+    cv2.rectangle(moisture_img, (0, moisture_height//2), (u_width, moisture_height), (255, 255, 0), -1)
+    cv2.putText(moisture_img, "U-Zone Dryness", (10, 3*moisture_height//4 + 10), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+    
+    # Combine visualizations
+    combined = np.vstack([viz, moisture_img])
+    return combined
+
+def visualize_results(image, results, skin_analysis=None):
+    """Create labeled visualization of zones and analysis"""
+    viz = image.copy()
+    
+    t_mask = results['t_mask']
+    u_mask = results['u_mask']
+
+    # Create colored overlays
+    viz = apply_masked_overlay(viz, (0, 255, 0), t_mask)  # Green T-zone
+    viz = apply_masked_overlay(viz, (255, 0, 0), u_mask)  # Blue U-zone
+    
+    # Add zone labels
+    cv2.putText(viz, "T-Zone (Forehead/Nose/Chin)", (10,30), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
+    cv2.putText(viz, "U-Zone (Cheeks)", (10,60), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,0,0), 2)
+    
+    # Plot output
+    plt.figure(figsize=(18,12))
+    
+    # Zone visualization
+    plt.subplot(221)
+    plt.imshow(cv2.cvtColor(viz, cv2.COLOR_BGR2RGB))
+    plt.title("Zone Visualization")
+    plt.axis('off')
+    
+    # T-zone extraction
+    plt.subplot(222)
+    plt.imshow(cv2.cvtColor(results['t_zone'], cv2.COLOR_BGR2RGB))
+    plt.title("T-Zone Extraction")
+    plt.axis('off')
+    
+    # U-zone extraction
+    plt.subplot(223)
+    plt.imshow(cv2.cvtColor(results['u_zone'], cv2.COLOR_BGR2RGB))
+    plt.title("U-Zone Extraction")
+    plt.axis('off')
+    
+    # Skin analysis visualization
+    if skin_analysis:
+        analysis_viz = visualize_analysis(image, skin_analysis)
+        plt.subplot(224)
+        plt.imshow(cv2.cvtColor(analysis_viz, cv2.COLOR_BGR2RGB))
+        plt.title("Skin Analysis Results")
+        plt.axis('off')
+    
+    plt.tight_layout()
+    plt.show()
+
+
+# Main execution
+image = cv2.imread("selfie.jpg")
+if image is None:
+    print("Error: Image not found or could not be loaded")
+    exit()
+
+landmarks = detect_face(image)
+
+if landmarks:
+    print(f"✅ Found {len(landmarks.landmark)} landmarks")
+    
+    # Extract facial zones
+    results = extract_facial_zones(image, landmarks)
+    
+    # Analyze skin
+    skin_analysis = analyze_skin(results['t_zone'], results['u_zone'])
+    
+    # Print analysis results
+    print("\n🔬 Skin Analysis Results:")
+    print(f"Skin Type: {skin_analysis['skin_type']}")
+    print(f"T-Zone Oiliness: {skin_analysis['moisture']['t_oiliness']*100:.1f}%")
+    print(f"U-Zone Dryness: {skin_analysis['moisture']['u_dryness']*100:.1f}%")
+    print(f"Key Concerns: {', '.join(skin_analysis['concerns'])}")
+    
+    # Visualize results
+    visualize_results(image, results, skin_analysis)
+    
+    # Save extracted zones
+    cv2.imwrite("t_zone.jpg", results['t_zone'])
+    cv2.imwrite("u_zone.jpg", results['u_zone'])
+else:
+    print("❌ No face detected in the image")
